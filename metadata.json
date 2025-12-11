@@ -1,0 +1,5 @@
+{
+  "name": "UI Gen - React Generator",
+  "description": "An AI-powered interface generator that creates React components from natural language prompts using Gemini 2.5 Flash and Pro models.",
+  "requestFramePermissions": []
+}
