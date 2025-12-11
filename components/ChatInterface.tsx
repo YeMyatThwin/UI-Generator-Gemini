@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, RefreshCw, Code, Eye, Play } from 'lucide-react';
+import { Send, Sparkles, RefreshCw, Code, Eye, Play, Paperclip, X } from 'lucide-react';
 import { ChatMessage } from '../types';
 
 interface ChatInterfaceProps {
-  onGenerate: (prompt: string) => Promise<void>;
+  onGenerate: (prompt: string, contextFiles?: File[]) => Promise<void>;
   isLoading: boolean;
   currentCode: string | null;
 }
@@ -12,7 +12,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onGenerate, isLoading, cu
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [activeTab, setActiveTab] = useState<'chat' | 'code'>('chat');
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -20,17 +22,32 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onGenerate, isLoading, cu
     }
   }, [messages]);
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setAttachedFiles(prev => [...prev, ...files]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
     const userMsg: ChatMessage = { role: 'user', content: input };
     setMessages(prev => [...prev, userMsg]);
+    const currentInput = input;
+    const currentFiles = [...attachedFiles];
     setInput('');
+    setAttachedFiles([]);
     setActiveTab('chat');
 
     try {
-      await onGenerate(userMsg.content);
+      await onGenerate(currentInput, currentFiles.length > 0 ? currentFiles : undefined);
       // We assume onGenerate handles the API call and state update
       // We add a system message to indicate completion if needed, but the preview updating is the real feedback.
       setMessages(prev => [...prev, { role: 'model', content: "Code generated! Check the preview." }]);
@@ -114,7 +131,34 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onGenerate, isLoading, cu
 
       {/* Input Area */}
       <div className="p-4 bg-slate-900 border-t border-slate-800">
+        {/* Attached Files */}
+        {attachedFiles.length > 0 && (
+          <div className="mb-3 flex flex-wrap gap-2">
+            {attachedFiles.map((file, index) => (
+              <div key={index} className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-300">
+                <Paperclip size={12} />
+                <span className="max-w-[120px] truncate">{file.name}</span>
+                <button
+                  type="button"
+                  onClick={() => removeFile(index)}
+                  className="text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        
         <form onSubmit={handleSubmit} className="relative">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".txt,.md,.json,.tsx,.ts,.jsx,.js"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
             <textarea 
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -125,15 +169,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onGenerate, isLoading, cu
                     }
                 }}
                 placeholder="Describe your UI... (Shift+Enter for new line)"
-                className="w-full bg-slate-800 text-slate-200 placeholder-slate-500 border border-slate-700 rounded-xl pl-4 pr-12 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 resize-none h-14 max-h-32 transition-all scrollbar-hide text-sm"
+                className="w-full bg-slate-800 text-slate-200 placeholder-slate-500 border border-slate-700 rounded-xl pl-4 pr-20 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 resize-none h-14 max-h-32 transition-all scrollbar-hide text-sm"
             />
-            <button 
-                type="submit" 
-                disabled={isLoading || !input.trim()}
-                className="absolute right-2 top-2 p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-                <Send size={16} />
-            </button>
+            <div className="absolute right-2 top-2 flex gap-1">
+                <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
+                    title="Attach files"
+                >
+                    <Paperclip size={16} />
+                </button>
+                <button 
+                    type="submit" 
+                    disabled={isLoading || !input.trim()}
+                    className="p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                    <Send size={16} />
+                </button>
+            </div>
         </form>
         <div className="text-center mt-2">
             <p className="text-[10px] text-slate-600">Powered by Gemini 3 Pro Preview</p>

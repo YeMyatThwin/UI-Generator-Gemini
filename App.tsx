@@ -2,23 +2,43 @@ import React, { useState, useEffect } from 'react';
 import ChatInterface from './components/ChatInterface';
 import Preview from './components/Preview';
 import { generateUI } from './services/geminiService';
-import { Maximize2, Minimize2, Laptop, Smartphone, Tablet } from 'lucide-react';
+import { Maximize2, Minimize2, Laptop, Smartphone, Tablet, Download, CheckCircle } from 'lucide-react';
 
 const App: React.FC = () => {
   const [currentCode, setCurrentCode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  const [saveNotification, setSaveNotification] = useState<string | null>(null);
   
   // Initial demo code to show something on load
   useEffect(() => {
     // Optional: Could set an initial hello world state
   }, []);
 
-  const handleGenerate = async (prompt: string) => {
+  const handleGenerate = async (prompt: string, contextFiles?: File[]) => {
     setIsLoading(true);
     try {
-      const code = await generateUI(prompt);
+      const code = await generateUI(prompt, contextFiles);
       setCurrentCode(code);
+      
+      // Save the generated code to the "generated pages" folder
+      const timestamp = new Date().getTime();
+      const filename = `generated-${timestamp}.tsx`;
+      
+      // Trigger download with the correct filename
+      const blob = new Blob([code], { type: 'text/typescript' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      // Show save notification
+      setSaveNotification(`Saved as ${filename}`);
+      setTimeout(() => setSaveNotification(null), 3000);
+      
+      console.log(`Code saved to downloads. Please move ${filename} to the "generated pages" folder.`);
     } catch (error) {
       console.error("Generation failed", error);
     } finally {
@@ -28,6 +48,14 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-200 overflow-hidden font-sans">
+      {/* Save Notification */}
+      {saveNotification && (
+        <div className="fixed top-4 right-4 z-50 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-slide-in">
+          <CheckCircle size={20} />
+          <span className="text-sm font-medium">{saveNotification}</span>
+        </div>
+      )}
+      
       {/* Left Sidebar - Chat & Code */}
       <div className="w-full md:w-[400px] flex-shrink-0 h-full z-10 shadow-2xl shadow-black/50">
         <ChatInterface 

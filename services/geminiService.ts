@@ -61,7 +61,7 @@ export const initializeGemini = () => {
   });
 };
 
-export const generateUI = async (prompt: string): Promise<string> => {
+export const generateUI = async (prompt: string, contextFiles?: File[]): Promise<string> => {
   if (!chatSession) {
     initializeGemini();
   }
@@ -70,7 +70,20 @@ export const generateUI = async (prompt: string): Promise<string> => {
   }
 
   try {
-    const response = await chatSession.sendMessage({ message: prompt });
+    let fullPrompt = prompt;
+    
+    // If context files are provided, read and append their content
+    if (contextFiles && contextFiles.length > 0) {
+      const fileContents = await Promise.all(
+        contextFiles.map(async (file) => {
+          const text = await file.text();
+          return `\n\n--- Context from ${file.name} ---\n${text}\n--- End of ${file.name} ---`;
+        })
+      );
+      fullPrompt = prompt + '\n\n' + fileContents.join('\n');
+    }
+    
+    const response = await chatSession.sendMessage({ message: fullPrompt });
     let text = response.text || '';
     
     // Cleanup: Remove markdown code blocks if the model accidentally adds them
