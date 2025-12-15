@@ -155,7 +155,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onGenerate, isLoading, cu
               ref={fileInputRef}
               type="file"
               multiple
-              accept=".txt,.md,.json,.tsx,.ts,.jsx,.js"
+              accept=".txt,.md,.json,.tsx,.ts,.jsx,.js,.png,.jpg,.jpeg,.gif,.webp,.svg"
               onChange={handleFileSelect}
               className="hidden"
             />

@@ -72,15 +72,26 @@ export const generateUI = async (prompt: string, contextFiles?: File[]): Promise
   try {
     let fullPrompt = prompt;
     
-    // If context files are provided, read and append their content
+    // If context files are provided, process them
     if (contextFiles && contextFiles.length > 0) {
-      const fileContents = await Promise.all(
-        contextFiles.map(async (file) => {
+      const textFileContents: string[] = [];
+      
+      for (const file of contextFiles) {
+        // Check if file is an image
+        if (file.type.startsWith('image/')) {
+          // For images, just note that an image was attached
+          // The actual image analysis would require vision API integration
+          textFileContents.push(`\n\n[Image file attached: ${file.name}]\nPlease create a UI component. If this is a design mockup or screenshot, try to recreate it faithfully. If it's content imagery, incorporate it appropriately into the design.`);
+        } else {
+          // Handle text files
           const text = await file.text();
-          return `\n\n--- Context from ${file.name} ---\n${text}\n--- End of ${file.name} ---`;
-        })
-      );
-      fullPrompt = prompt + '\n\n' + fileContents.join('\n');
+          textFileContents.push(`\n\n--- Context from ${file.name} ---\n${text}\n--- End of ${file.name} ---`);
+        }
+      }
+      
+      if (textFileContents.length > 0) {
+        fullPrompt = prompt + '\n\n' + textFileContents.join('\n');
+      }
     }
     
     const response = await chatSession.sendMessage({ message: fullPrompt });
