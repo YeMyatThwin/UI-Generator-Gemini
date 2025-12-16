@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ChatInterface from './components/ChatInterface';
 import Preview from './components/Preview';
+import FigmaButton from './components/FigmaButton';
 import { generateUI } from './services/geminiService';
 import { Maximize2, Minimize2, Laptop, Smartphone, Tablet, Download, CheckCircle } from 'lucide-react';
 
@@ -14,6 +15,12 @@ const App: React.FC = () => {
   useEffect(() => {
     // Optional: Could set an initial hello world state
   }, []);
+
+  const getPreviewElement = (): HTMLElement | null => {
+    // Find the preview container element
+    const previewContainer = document.querySelector('[data-preview-container]') as HTMLElement;
+    return previewContainer;
+  };
 
   const handleGenerate = async (prompt: string, contextFiles?: File[]) => {
     setIsLoading(true);
@@ -98,8 +105,15 @@ const App: React.FC = () => {
                 </div>
             </div>
             
-            <div className="text-xs text-slate-500 hidden md:block">
-                Generated output is running in a secure sandbox
+            <div className="flex items-center gap-3">
+                <FigmaButton 
+                  code={currentCode} 
+                  disabled={isLoading}
+                  onCopyDesign={getPreviewElement}
+                />
+                <div className="text-xs text-slate-500 hidden lg:block">
+                    Generated output is running in a secure sandbox
+                </div>
             </div>
         </div>
 
@@ -115,6 +129,7 @@ const App: React.FC = () => {
 
             {/* Resizable Container */}
             <div 
+                data-preview-container
                 className={`
                     relative bg-white shadow-2xl transition-all duration-500 ease-in-out border border-slate-700 overflow-hidden
                     ${viewMode === 'desktop' ? 'w-full h-full rounded-md' : ''}
